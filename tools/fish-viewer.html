@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Primeval Fishing — Visor de peces y señuelos (herramienta de desarrollo)</title>
+  <!-- Herramienta para iterar los modelos procedurales (fishmesh.js / lures.js)
+       sin entrar al juego. Abrir con un servidor local: /tools/fish-viewer.html -->
+  <style>body { margin: 0; background: #2a2219; overflow: hidden; } #lbl { position: fixed; left: 0; right: 0; bottom: 6px; color: #efe3c6; font: 12px sans-serif; display: flex; justify-content: space-around; }</style>
+</head>
+<body>
+  <div id="lbl"></div>
+  <script src="../js/lib/three.js"></script>
+  <script src="../js/core/util.js"></script>
+  <script src="../js/data/species.js"></script>
+  <script src="../js/data/gear.js"></script>
+  <script src="../js/world/geo.js"></script>
+  <script src="../js/world/fishmesh.js"></script>
+  <script src="../js/world/lures.js"></script>
+  <script>
+    var r = new THREE.WebGLRenderer({ antialias: true });
+    r.setSize(innerWidth, innerHeight); document.body.appendChild(r.domElement);
+    var sc = new THREE.Scene(); sc.background = new THREE.Color('#5a4b3b');
+    var cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 100);
+    cam.position.set(0, 0.6, 7.5); cam.lookAt(0, 0, 0);
+    sc.add(new THREE.HemisphereLight('#ffe2b0', '#4a3a2a', 0.9));
+    var dl = new THREE.DirectionalLight('#fff0d0', 0.9); dl.position.set(2, 4, 3); sc.add(dl);
+    var ids = Object.keys(PF.SPECIES), fish = [];
+    var cols = 5;
+    ids.forEach(function (id, i) {
+      var m = PF.FishMesh.create(PF.SPECIES[id]);
+      m.scale.setScalar(1.2);
+      m.position.set((i % cols - (cols - 1) / 2) * 1.45, 1.3 - Math.floor(i / cols) * 0.95, 0);
+      m.rotation.y = Math.PI / 2 - 0.35;
+      sc.add(m); fish.push(m);
+    });
+    var lures = PF.GEAR_BAITS.filter(function (b) { return b.tech === 'spin'; });
+    lures.forEach(function (b, i) {
+      var l = PF.Lures.build(b); l.scale.setScalar(5);
+      l.position.set((i - (lures.length - 1) / 2) * 1.0, -1.6, 0); l.rotation.y = Math.PI / 2;
+      sc.add(l); fish.push(l);
+    });
+    document.getElementById('lbl').textContent = ids.join(' · ');
+    var t = 0;
+    (function loop() {
+      requestAnimationFrame(loop); t += 0.016;
+      fish.forEach(function (m, i) {
+        if (m.material && m.material.userData.uni) { m.material.userData.uni.uSwim.value = t * 6; m.material.userData.uni.uAmp.value = 0.08; }
+        if (m.userData.animate) m.userData.animate(0.016, 0.6, {});
+      });
+      r.render(sc, cam);
+    })();
+  </script>
+</body>
+</html>
